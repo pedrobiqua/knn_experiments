@@ -1,0 +1,46 @@
+# Compilados
+*.class
+*.log
+
+# Pacotes
+*.jar
+*.war
+*.ear
+
+# Diretórios de build
+/target/
+/out/
+/build/
+
+# Configurações de IDEs
+# IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Eclipse
+.project
+.classpath
+.settings/
+bin/
+
+# NetBeans
+nbproject/private/
+build/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+
+# VS Code
+.vscode/
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+
+# Arquivos temporários
+*.swp
+*.swo
+*.tmp
