@@ -1,11 +1,11 @@
-package com.experiments_knn.lazy;
+package com.experiments_knn.datastructure;
 
 import com.yahoo.labs.samoa.instances.Instance;
 import com.yahoo.labs.samoa.instances.Instances;
 
 import moa.classifiers.lazy.neighboursearch.NearestNeighbourSearch;
 
-public class KNNKDtree extends NearestNeighbourSearch {
+public class KDtree extends NearestNeighbourSearch {
 
     @Override
     public Instance nearestNeighbour(Instance target) throws Exception {
