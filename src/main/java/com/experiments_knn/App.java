@@ -8,16 +8,28 @@ import weka.core.Utils;
 import moa.core.InstanceExample;
 import moa.core.TimingUtils;
 
+import java.io.FileWriter;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 
 // import com.experiments_knn.lazy.ANN;
 // import com.experiments_knn.lazy.kNNCamberra;
 import com.experiments_knn.lazy.KNN;
+import com.experiments_knn.lazy.kNNCamberra;
 import com.yahoo.labs.samoa.instances.Instance;
 
 public class App {
     public static void main(String[] args) throws Exception {
-        String arffFile = App.class.getClassLoader().getResource("dataset/teste.arff").getPath();
+        // Configuração dataset
+        // WriteStreamToARFFFile -s (generators.AgrawalGenerator -b) -f /home/pedro/projects/knn_experiments/src/main/resources/dataset/agrawal_dataset.arff -m 1000000
+        // WriteStreamToARFFFile -s generators.AssetNegotiationGenerator -f /home/pedro/projects/knn_experiments/src/main/resources/dataset/asset_negotiation_dataset.arff -m 1000000
+        // WriteStreamToARFFFile -s generators.HyperplaneGenerator -f /home/pedro/projects/knn_experiments/src/main/resources/dataset/hyperplane_dataset.arff -m 1000000
+        // WriteStreamToARFFFile -s (generators.SEAGenerator -b) -f /home/pedro/projects/knn_experiments/src/main/resources/dataset/sea_dataset.arff -m 1000000
+        // WriteStreamToARFFFile -s (generators.STAGGERGenerator -b) -f /home/pedro/projects/knn_experiments/src/main/resources/dataset/stagger_dataset.arff -m 1000000
+
+        String arffFile = App.class.getClassLoader().getResource("dataset/sea_dataset.arff").getPath();
         ArffFileStream stream = new ArffFileStream(arffFile, -1);
 
         // Define a classe (último atributo)
@@ -26,13 +38,18 @@ public class App {
         }
 
         ArrayList<Classifier> classifiers = new ArrayList<Classifier>();
+        classifiers.add(new kNNCamberra());
+        kNN knn_moa = new kNN();
+        knn_moa.nearestNeighbourSearchOption.setChosenIndex(1);
+        classifiers.add(knn_moa); // kNN do MOA com KDTree
         classifiers.add(new KNN()); // KNN ingenuo Brute force
-        classifiers.add(new RW_kNN()); // RW_KNN -> Tambem está no MOA e é um mais recente | Usa KDTree
-        classifiers.add(new kNN()); // kNN do MOA, usa KDTree
-        // classifiers.add(new ANN()); // Implementar o que está no River 
+        classifiers.add(new RW_kNN()); // RW_KNN -> Tambem está no MOA e é um mais recente | Usa 2 KDTree PADRÃO: LinearNN Revouir: 500 Window: 500
+        // classifiers.add(new ANN()); // Implementar o que está no River
         // classifiers.add(new kNNCanberra()) // kNN do eduardo, vou ter que adaptar
 
         ArrayList<Double> times_median = new ArrayList<Double>();
+        ArrayList<Double> accuracies = new ArrayList<Double>();
+
         for (Classifier classifier : classifiers) {
             ArrayList<Double> times = new ArrayList<Double>();
             System.out.println(classifier.getClass().getName());
@@ -50,7 +67,7 @@ public class App {
                 double[] votes = classifier.getVotesForInstance(inst);
                 long predictEndTime = TimingUtils.getNanoCPUTimeOfCurrentThread();
                 times.add(TimingUtils.nanoTimeToSeconds(predictEndTime - predictStartTime));
-                
+
                 int predicted = Utils.maxIndex(votes);
                 int trueClass = (int) inst.classValue();
 
@@ -70,8 +87,33 @@ public class App {
             double median = sumTimes / (double)times.size();
             times_median.add(median);
 
-            System.out.println("Acurácia final: " + (correct / (double) total));
+            double accuracy = correct / (double) total;
+            accuracies.add(accuracy);
+
+            System.out.println("Acurácia final: " + accuracy);
             System.out.println("Média: " + median);
         }
+
+        // ======== Salvar resultados em CSV =========
+        String date = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
+        String outputPath = App.class.getClassLoader().getResource("dataset").getPath() + "/results_" + date + ".csv";
+
+        try (FileWriter writer = new FileWriter(outputPath)) {
+            // Cabeçalho
+            writer.append("Classifier,Accuracy,MeanTime\n");
+            for (int i = 0; i < classifiers.size(); i++) {
+                writer.append(classifiers.get(i).getClass().getSimpleName())
+                      .append(",")
+                      .append(String.valueOf(accuracies.get(i)))
+                      .append(",")
+                      .append(String.valueOf(times_median.get(i)))
+                      .append("\n");
+            }
+            writer.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        System.out.println("Resultados salvos em: " + outputPath);
     }
 }

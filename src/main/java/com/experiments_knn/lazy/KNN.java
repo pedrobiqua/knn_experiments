@@ -32,7 +32,7 @@ public class KNN extends AbstractClassifier implements MultiClassClassifier {
             }
             return atributos;
         }
-        
+
         public static ArrayList<Attribute> copyAtributes(Instance instance){
             ArrayList<Attribute> atributes = new ArrayList<Attribute>(instance.numAttributes());
             for(int i =0; i < instance.numAttributes(); i++){
@@ -44,18 +44,18 @@ public class KNN extends AbstractClassifier implements MultiClassClassifier {
     }
 
     public class InstancesUtils {
-	
+
         public static Instances gerarDataset(List<Instance> instancias, String nomeDataset) throws Exception{
             ArrayList<Attribute> atributos = AttributesUtils.copyAtributes(instancias.get(0));
-            
+
             Instances retorno = new Instances(nomeDataset, atributos,
                     instancias.size());
             for(Instance inst : instancias){
                 retorno.add(inst);
             }
-            
+
             retorno.setClassIndex(retorno.numAttributes() - 1);
-            
+
             return retorno;
         }
     }
@@ -67,7 +67,7 @@ public class KNN extends AbstractClassifier implements MultiClassClassifier {
 
     @Override
     public double[] getVotesForInstance(Instance inst) {
-        double[] v = new double[num_class + 1];
+        double[] v = new double[inst.numClasses()];
         try {
             NearestNeighbourSearch search;
             Instances window_instances = InstancesUtils.gerarDataset(window, "Validation Instances");
@@ -90,9 +90,6 @@ public class KNN extends AbstractClassifier implements MultiClassClassifier {
     @Override
     public void trainOnInstanceImpl(Instance inst) {
         // Sliding window
-        if (num_class > 0) {
-            num_class = (int) inst.classValue();
-        }
         if (window == null) {
             window = new LinkedList<Instance>();
         }
