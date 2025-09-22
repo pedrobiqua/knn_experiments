@@ -49,6 +49,7 @@ public class App {
 
         ArrayList<Double> times_median = new ArrayList<Double>();
         ArrayList<Double> accuracies = new ArrayList<Double>();
+        ArrayList<Double> executionTime = new ArrayList<Double>();
 
         for (Classifier classifier : classifiers) {
             ArrayList<Double> times = new ArrayList<Double>();
@@ -59,6 +60,7 @@ public class App {
             int correct = 0;
             int total = 0;
 
+            long startTime = TimingUtils.getNanoCPUTimeOfCurrentThread();
             while (stream.hasMoreInstances()) {
                 InstanceExample ex = stream.nextInstance();
                 Instance inst = ex.getData();
@@ -79,6 +81,10 @@ public class App {
                 classifier.trainOnInstance(inst);
             }
 
+            long endTime = TimingUtils.getNanoCPUTimeOfCurrentThread();
+            double timeExecution = TimingUtils.nanoTimeToSeconds(endTime - startTime);
+            executionTime.add(timeExecution);
+
             double sumTimes = 0;
             for (Double time : times) {
                 sumTimes += time;
@@ -92,6 +98,7 @@ public class App {
 
             System.out.println("Acurácia final: " + accuracy);
             System.out.println("Média: " + median);
+            System.out.println("Tempo total: " + timeExecution);
         }
 
         // ======== Salvar resultados em CSV =========
@@ -99,14 +106,15 @@ public class App {
         String outputPath = App.class.getClassLoader().getResource("dataset").getPath() + "/results_" + date + ".csv";
 
         try (FileWriter writer = new FileWriter(outputPath)) {
-            // Cabeçalho
-            writer.append("Classifier,Accuracy,MeanTime\n");
+            writer.append("Classifier,Accuracy,MeanTimePredict,ExecutionTime\n");
             for (int i = 0; i < classifiers.size(); i++) {
                 writer.append(classifiers.get(i).getClass().getSimpleName())
                       .append(",")
                       .append(String.valueOf(accuracies.get(i)))
                       .append(",")
                       .append(String.valueOf(times_median.get(i)))
+                      .append(",")
+                      .append(String.valueOf(executionTime.get(i)))
                       .append("\n");
             }
             writer.flush();
