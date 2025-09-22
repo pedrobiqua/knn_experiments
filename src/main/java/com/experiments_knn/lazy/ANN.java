@@ -1,12 +1,23 @@
 package com.experiments_knn.lazy;
 
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+
+import com.experiments_knn.datastructure.Vertex;
 import com.yahoo.labs.samoa.instances.Instance;
 
 import moa.classifiers.AbstractClassifier;
 import moa.classifiers.MultiClassClassifier;
 import moa.core.Measurement;
 
-public class ANN extends AbstractClassifier implements MultiClassClassifier{
+public class ANN extends AbstractClassifier implements MultiClassClassifier {
+    // Aqui vai ser amazenado a minha lista 
+    private int window_size = 500;
+
+    public ANN() {
+        
+    }
 
     @Override
     public boolean isRandomizable() {
@@ -28,8 +39,9 @@ public class ANN extends AbstractClassifier implements MultiClassClassifier{
 
     @Override
     public void trainOnInstanceImpl(Instance inst) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'trainOnInstanceImpl'");
+        // Sliding window
+        
+
     }
 
     @Override
