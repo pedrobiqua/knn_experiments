@@ -4,20 +4,17 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
+import com.experiments_knn.datastructure.KDtree;
 import com.yahoo.labs.samoa.instances.Attribute;
 import com.yahoo.labs.samoa.instances.Instance;
 import com.yahoo.labs.samoa.instances.Instances;
 
 import moa.classifiers.AbstractClassifier;
 import moa.classifiers.MultiClassClassifier;
-import moa.classifiers.lazy.neighboursearch.LinearNNSearch;
 import moa.classifiers.lazy.neighboursearch.NearestNeighbourSearch;
 import moa.core.Measurement;
 
-/*
- * AQUI, PODERIA USAR O DO MOA, POREM AQUI DEIXO APENAS O FORCE BRUTE E USO O SLIDING WINDOW usando o LinkedList
- */
-public class KNN extends AbstractClassifier implements MultiClassClassifier {
+public class kNNKDTree extends AbstractClassifier implements MultiClassClassifier {
 
     LinkedList<Instance> window;
     int window_size = 1000;
@@ -71,7 +68,7 @@ public class KNN extends AbstractClassifier implements MultiClassClassifier {
         try {
             NearestNeighbourSearch search;
             Instances window_instances = InstancesUtils.gerarDataset(window, "Validation Instances");
-            search = new LinearNNSearch(window_instances);
+            search = new KDtree(window_instances);
             Instances neighbours = search.kNearestNeighbours(inst, 3);
             for (int i = 0; i < neighbours.numInstances(); i++) {
                 v[(int) neighbours.instance(i).classValue()]++;

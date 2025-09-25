@@ -18,24 +18,35 @@ import java.util.Date;
 // import com.experiments_knn.lazy.kNNCamberra;
 import com.experiments_knn.lazy.KNN;
 import com.experiments_knn.lazy.kNNCamberra;
+import com.experiments_knn.lazy.kNNKDTree;
 import com.yahoo.labs.samoa.instances.Instance;
 
 public class App {
     public static void main(String[] args) throws Exception {
         // Configuração dataset
-        // WriteStreamToARFFFile -s (generators.AgrawalGenerator -b) -f /home/pedro/projects/knn_experiments/src/main/resources/dataset/agrawal_dataset.arff -m 1000000
-        // WriteStreamToARFFFile -s generators.AssetNegotiationGenerator -f /home/pedro/projects/knn_experiments/src/main/resources/dataset/asset_negotiation_dataset.arff -m 1000000
-        // WriteStreamToARFFFile -s generators.HyperplaneGenerator -f /home/pedro/projects/knn_experiments/src/main/resources/dataset/hyperplane_dataset.arff -m 1000000
-        // WriteStreamToARFFFile -s (generators.SEAGenerator -b) -f /home/pedro/projects/knn_experiments/src/main/resources/dataset/sea_dataset.arff -m 1000000
-        // WriteStreamToARFFFile -s (generators.STAGGERGenerator -b) -f /home/pedro/projects/knn_experiments/src/main/resources/dataset/stagger_dataset.arff -m 1000000
+        // WriteStreamToARFFFile -s (generators.AgrawalGenerator -b) -f
+        // /home/pedro/projects/knn_experiments/src/main/resources/dataset/agrawal_dataset.arff
+        // -m 1000000
+        // WriteStreamToARFFFile -s generators.AssetNegotiationGenerator -f
+        // /home/pedro/projects/knn_experiments/src/main/resources/dataset/asset_negotiation_dataset.arff
+        // -m 1000000
+        // WriteStreamToARFFFile -s generators.HyperplaneGenerator -f
+        // /home/pedro/projects/knn_experiments/src/main/resources/dataset/hyperplane_dataset.arff
+        // -m 1000000
+        // WriteStreamToARFFFile -s (generators.SEAGenerator -b) -f
+        // /home/pedro/projects/knn_experiments/src/main/resources/dataset/sea_dataset.arff
+        // -m 1000000
+        // WriteStreamToARFFFile -s (generators.STAGGERGenerator -b) -f
+        // /home/pedro/projects/knn_experiments/src/main/resources/dataset/stagger_dataset.arff
+        // -m 1000000
 
         // Lista de datasets
         String[] datasets = {
-            "dataset/agrawal_dataset.arff",
-            "dataset/asset_negotiation_dataset.arff",
-            "dataset/hyperplane_dataset.arff",
-            "dataset/sea_dataset.arff",
-            "dataset/stagger_dataset.arff"
+                "dataset/agrawal_dataset.arff",
+                "dataset/asset_negotiation_dataset.arff",
+                "dataset/hyperplane_dataset.arff",
+                "dataset/sea_dataset.arff",
+                "dataset/stagger_dataset.arff"
         };
 
         // Loop sobre cada dataset
@@ -50,14 +61,16 @@ public class App {
             }
 
             ArrayList<Classifier> classifiers = new ArrayList<>();
-            classifiers.add(new kNNCamberra());
-            kNN knn_moa = new kNN();
-            knn_moa.nearestNeighbourSearchOption.setChosenIndex(1);
-            classifiers.add(knn_moa); // kNN do MOA com KDTree
-            classifiers.add(new KNN()); // KNN ingenuo Brute force
-            classifiers.add(new RW_kNN()); // RW_KNN -> Tambem está no MOA e é um mais recente | Usa 2 KDTree PADRÃO: LinearNN Revouir: 500 Window: 500
+            classifiers.add(new kNNKDTree());
+            // classifiers.add(new kNNCamberra());
+            // kNN knn_moa = new kNN();
+            // knn_moa.nearestNeighbourSearchOption.setChosenIndex(1);
+            // classifiers.add(knn_moa); // kNN do MOA com KDTree
+            // classifiers.add(new KNN()); // KNN ingenuo Brute force
+            // classifiers.add(new RW_kNN()); // RW_KNN -> Tambem está no MOA e é um mais
+            // recente | Usa 2 KDTree PADRÃO:
+            // LinearNN Revouir: 500 Window: 500
             // classifiers.add(new ANN()); // Implementar o que está no River
-            // classifiers.add(new kNNCanberra()) // kNN do eduardo, vou ter que adaptar
 
             ArrayList<Double> times_median = new ArrayList<>();
             ArrayList<Double> accuracies = new ArrayList<>();
@@ -71,15 +84,20 @@ public class App {
 
                 int correct = 0;
                 int total = 0;
+                int count = 0;
 
                 long startTime = TimingUtils.getNanoCPUTimeOfCurrentThread();
                 while (stream.hasMoreInstances()) {
+                    count++;
                     InstanceExample ex = stream.nextInstance();
                     Instance inst = ex.getData();
 
                     long predictStartTime = TimingUtils.getNanoCPUTimeOfCurrentThread();
                     double[] votes = classifier.getVotesForInstance(inst);
                     long predictEndTime = TimingUtils.getNanoCPUTimeOfCurrentThread();
+                    double time = TimingUtils.nanoTimeToSeconds(predictEndTime - predictStartTime);
+                    System.out.println(time);
+
                     times.add(TimingUtils.nanoTimeToSeconds(predictEndTime - predictStartTime));
 
                     int predicted = Utils.maxIndex(votes);
@@ -115,19 +133,20 @@ public class App {
 
             // ======== Salvar resultados em CSV =========
             String date = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
-            String outputPath = App.class.getClassLoader().getResource("dataset").getPath() + "/results_" + datasetPath.replace("/", "_") + "_" + date + ".csv";
+            String outputPath = App.class.getClassLoader().getResource("dataset").getPath() + "/results_"
+                    + datasetPath.replace("/", "_") + "_" + date + ".csv";
 
             try (FileWriter writer = new FileWriter(outputPath)) {
                 writer.append("Classifier,Accuracy,MeanTimePredict,ExecutionTime\n");
                 for (int i = 0; i < classifiers.size(); i++) {
                     writer.append(classifiers.get(i).getClass().getSimpleName())
-                        .append(",")
-                        .append(String.valueOf(accuracies.get(i)))
-                        .append(",")
-                        .append(String.valueOf(times_median.get(i)))
-                        .append(",")
-                        .append(String.valueOf(executionTime.get(i)))
-                        .append("\n");
+                            .append(",")
+                            .append(String.valueOf(accuracies.get(i)))
+                            .append(",")
+                            .append(String.valueOf(times_median.get(i)))
+                            .append(",")
+                            .append(String.valueOf(executionTime.get(i)))
+                            .append("\n");
                 }
                 writer.flush();
             } catch (IOException e) {
