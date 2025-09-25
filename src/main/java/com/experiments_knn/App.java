@@ -61,7 +61,7 @@ public class App {
             }
 
             ArrayList<Classifier> classifiers = new ArrayList<>();
-            classifiers.add(new kNNKDTree());
+            // classifiers.add(new kNNKDTree());
             // classifiers.add(new kNNCamberra());
             // kNN knn_moa = new kNN();
             // knn_moa.nearestNeighbourSearchOption.setChosenIndex(1);

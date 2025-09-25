@@ -11,6 +11,7 @@ import com.yahoo.labs.samoa.instances.Instances;
 import com.yahoo.labs.samoa.instances.InstancesHeader;
 
 import moa.classifiers.lazy.neighboursearch.NearestNeighbourSearch;
+import moa.core.TimingUtils;
 
 public class KDtree extends NearestNeighbourSearch {
 
@@ -45,7 +46,10 @@ public class KDtree extends NearestNeighbourSearch {
 
     public KDtree(Instances insts) {
         this.numDim = insts.get(0).numValues() - 1;
+        long startTime = TimingUtils.getNanoCPUTimeOfCurrentThread();
         this.root = build(insts, 0);
+        long endTime = TimingUtils.getNanoCPUTimeOfCurrentThread();
+        System.out.println("Build: " + TimingUtils.nanoTimeToSeconds(endTime - startTime));
         this.bests = new PriorityQueue<>(Comparator.comparingDouble((NodeDistPair p) -> p.dist).reversed());
     }
 
@@ -58,7 +62,10 @@ public class KDtree extends NearestNeighbourSearch {
     @Override
     public Instances kNearestNeighbours(Instance target, int k) throws Exception {
         this.k = k;
+        long startTime = TimingUtils.getNanoCPUTimeOfCurrentThread();
         search(this.root, target, 0);
+        long endTime = TimingUtils.getNanoCPUTimeOfCurrentThread();
+        System.out.println("Search: " + TimingUtils.nanoTimeToSeconds(endTime - startTime));
 
         InstancesHeader header = (InstancesHeader) target.dataset();
         Instances insts = new Instances(header);
@@ -67,7 +74,6 @@ public class KDtree extends NearestNeighbourSearch {
         for (NodeDistPair pair : bests) {
             insts.add(pair.node.instance);
         }
-
         return insts;
     }
 
@@ -81,7 +87,7 @@ public class KDtree extends NearestNeighbourSearch {
 
         int axis = depth % numDim;
 
-        if (target.toDoubleArray()[axis] < root.instance.toDoubleArray()[axis]) {
+        if (target.value(axis) < root.instance.value(axis)) {
             next_branch = root.left;
             other_branch = root.right;
         } else {
@@ -100,7 +106,7 @@ public class KDtree extends NearestNeighbourSearch {
             bests.add(new NodeDistPair(root, dist));
         }
 
-        double diff = target.toDoubleArray()[axis] - root.instance.toDoubleArray()[axis];
+        double diff = target.value(axis) - root.instance.value(axis);
         // Verifico se preciso ir para o other_branch, a outra subarvore
         if (bests.size() < k || diff * diff < bests.peek().dist) {
             search(other_branch, target, depth + 1);
@@ -136,36 +142,32 @@ public class KDtree extends NearestNeighbourSearch {
             return null;
         }
 
-        int axis = depth % numDim;
-        ArrayList<Double> values_dim = new ArrayList<>();
+        ArrayList<Double> values_insts = new ArrayList<Double>();
         for (int i = 0; i < insts.size(); i++) {
-            values_dim.add(insts.get(i).toDoubleArray()[axis]);
+            values_insts.add(insts.get(i).toDoubleArray()[depth]);
         }
 
-        Collections.sort(values_dim);
-        int median = values_dim.size() / 2;
-        double value_median = values_dim.get(median);
-        Instance node_value = null;
+        Collections.sort(values_insts);
+        double median = values_insts.get((int) (values_insts.size() + 1) / 2 - 1);
+        Instance medianInstance = null;
 
-        Instances left = new Instances(insts, insts.size());
-        Instances right = new Instances(insts, insts.size());
+        Instances instsToTheLeft = new Instances(insts, insts.size());
+        Instances instsToTheRight = new Instances(insts, insts.size());
 
-        for (int i = 0; i < values_dim.size(); i++) {
-            double value = values_dim.get(i);
-            if (value == value_median && node_value == null) {
-                node_value = insts.get(i);
-            } else if (value < value_median) {
-                left.add(insts.get(i));
-            } else {
-                right.add(insts.get(i));
-            }
+        for (int i = 0; i < insts.size(); i++) {
+            if (insts.get(i).toDoubleArray()[depth] == median && medianInstance == null) {
+                medianInstance = insts.get(i);
+            } else if (insts.get(i).toDoubleArray()[depth] < median)
+                instsToTheLeft.add(insts.get(i));
+            else
+                instsToTheRight.add(insts.get(i));
         }
 
-        return new Node(
-                node_value,
-                build(left, depth + 1),
-                build(right, depth + 1),
-                depth % numDim);
+        // Monta a árvore em cima dessa recursão
+        return new Node(medianInstance,
+                build(instsToTheLeft, (depth + 1) % this.numDim),
+                build(instsToTheRight, (depth + 1) % this.numDim),
+                depth);
     }
 
 }
