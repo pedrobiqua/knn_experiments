@@ -20,11 +20,22 @@ public class KDtree extends NearestNeighbourSearch implements StreamNeighborSear
         Instance instance;
         int splitDim;
 
+        public Node(Instance inst, int splitDim) {
+            this.instance = inst;
+            this.splitDim = splitDim;
+            this.left = null;
+            this.right = null;
+        }
+
         public Node(Instance value, Node left, Node right, int splitDim) {
             this.instance = value;
             this.left = left;
             this.right = right;
             this.splitDim = splitDim;
+        }
+
+        public boolean isLeaf() {
+            return left == null && right == null;
         }
     }
 
@@ -124,6 +135,23 @@ public class KDtree extends NearestNeighbourSearch implements StreamNeighborSear
         return total;
     }
 
+    private Node findNode(Node p, Instance inst) {
+        if (p == null) {
+            return p;
+        }
+
+        if (p.instance.equals(inst)) {
+            return p;
+        }
+
+        int dim = p.splitDim;
+        if (inst.toDoubleArray()[dim] < p.instance.toDoubleArray()[dim]) {
+            return findNode(p.left, inst);
+        } else {
+            return findNode(p.right, inst);
+        }
+    }
+
     @Override
     public double[] getDistances() throws Exception {
         // TODO Auto-generated method stub
@@ -166,18 +194,57 @@ public class KDtree extends NearestNeighbourSearch implements StreamNeighborSear
     // Funções da Interface que vao ser usadas para o KDTree dinamico em Streams de dados
     @Override
     public void update(Instance ins) throws Exception {
-        // TODO Implementar aqui o insert da k-d tree
-        // IMPLEMENTAR A INSERÇÃO DA KDTREE DO LIVRO DO PROFESSOR
+        int i = 0;
+        Node p = this.root;
+        Node prev = null;
 
-        throw new UnsupportedOperationException("Unimplemented method 'update'");
+        while (p != null) {
+            prev = p;
+            if (ins.toDoubleArray()[i] < p.instance.toDoubleArray()[i]) {
+                p = p.left;
+            } else {
+                p = p.right;
+            }
+
+            i = (i+1) % numDim;
+        }
+
+        int axis = (i-1 + numDim) % numDim;
+
+        // Se for nulo o meu root
+        if (root == null) {
+            root = new Node(ins, 0);
+        } else if (ins.toDoubleArray()[axis] < prev.instance.toDoubleArray()[axis]) {
+            prev.left = new Node(ins, axis);
+        } else {
+            prev.right = new Node(ins, axis);
+        }
     }
 
     @Override
     public void removeInstance(Instance inst) throws Exception {
-        // TODO Auto-generated method stub
-        // IMPLEMENTAR A REMOÇÃO DA KDTREE DO LIVRO DO PROFESSOR
-        // AINDA NÃO TENHO DOMINIO
-        throw new UnsupportedOperationException("Unimplemented method 'removeInstance'");
+        Node p = findNode(this.root, inst); // No que eu quero remover
+        delete(p, p.splitDim);
+    }
+
+    private void delete(Node p, int discriminator) {
+        Node q = null;
+        if (p.isLeaf()) {
+            // Apenas deletar o p
+        } else if (p.right != null) {
+            q = smallest(p.right, discriminator, ((discriminator + 1) % numDim));
+        } else {
+            q = smallest(p.right, discriminator, ((discriminator + 1) % numDim));
+            p.right = p.left;
+            p.left = null;
+        }
+
+        p.instance = q.instance;
+        delete(q, discriminator);
+    }
+
+    private Node smallest(Node q, int i, int j) {
+        return null;
     }
 
     @Override
