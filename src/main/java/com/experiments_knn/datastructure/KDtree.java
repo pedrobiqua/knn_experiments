@@ -12,7 +12,7 @@ import com.yahoo.labs.samoa.instances.InstancesHeader;
 import moa.classifiers.lazy.neighboursearch.NearestNeighbourSearch;
 import moa.core.TimingUtils;
 
-public class KDtree extends NearestNeighbourSearch {
+public class KDtree extends NearestNeighbourSearch implements StreamNeighborSearch {
 
     public class Node {
         Node left;
@@ -130,12 +130,6 @@ public class KDtree extends NearestNeighbourSearch {
         throw new UnsupportedOperationException("Unimplemented method 'getDistances'");
     }
 
-    @Override
-    public void update(Instance ins) throws Exception {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'update'");
-    }
-
     Node build(Instances insts, int depth) {
         if (insts.size() == 0) {
             return null;
@@ -167,6 +161,36 @@ public class KDtree extends NearestNeighbourSearch {
                 build(instsToTheLeft, (depth + 1) % this.numDim),
                 build(instsToTheRight, (depth + 1) % this.numDim),
                 depth);
+    }
+
+    // Funções da Interface que vao ser usadas para o KDTree dinamico em Streams de dados
+    @Override
+    public void update(Instance ins) throws Exception {
+        // TODO Implementar aqui o insert da k-d tree
+        // IMPLEMENTAR A INSERÇÃO DA KDTREE DO LIVRO DO PROFESSOR
+
+        throw new UnsupportedOperationException("Unimplemented method 'update'");
+    }
+
+    @Override
+    public void removeInstance(Instance inst) throws Exception {
+        // TODO Auto-generated method stub
+        // IMPLEMENTAR A REMOÇÃO DA KDTREE DO LIVRO DO PROFESSOR
+        // AINDA NÃO TENHO DOMINIO
+        throw new UnsupportedOperationException("Unimplemented method 'removeInstance'");
+    }
+
+    @Override
+    public void setInstances(Instances insts) throws Exception {
+        // TODO Auto-generated method stub
+        super.setInstances(insts);
+    }
+
+
+    @Override
+    public boolean isToRebuild() {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'isToRebuild'");
     }
 
 }

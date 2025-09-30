@@ -14,7 +14,7 @@ import moa.classifiers.MultiClassClassifier;
 import moa.classifiers.lazy.neighboursearch.NearestNeighbourSearch;
 import moa.core.Measurement;
 
-public class kNNKDTree extends AbstractClassifier implements MultiClassClassifier {
+public class kNNStream extends AbstractClassifier implements MultiClassClassifier {
 
     LinkedList<Instance> window;
     int window_size = 1000;

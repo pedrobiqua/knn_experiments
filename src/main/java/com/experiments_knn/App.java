@@ -18,7 +18,7 @@ import java.util.Date;
 // import com.experiments_knn.lazy.kNNCamberra;
 import com.experiments_knn.lazy.KNN;
 import com.experiments_knn.lazy.kNNCamberra;
-import com.experiments_knn.lazy.kNNKDTree;
+import com.experiments_knn.lazy.kNNStream;
 import com.yahoo.labs.samoa.instances.Instance;
 
 public class App {
@@ -61,7 +61,7 @@ public class App {
             }
 
             ArrayList<Classifier> classifiers = new ArrayList<>();
-            // classifiers.add(new kNNKDTree()); // Minha implementação de KDTree. // Não está bom, pq?
+            // classifiers.add(new kNNStream()); // Minha implementação de KDTree. // Não está bom, pq?
             // Vendo os tempos, está muito mais lento que o do MOA. Principalmente no build.
             // A busca está boa. No build verifiquei que é diferente do MOA. O MOOA faz algumas
             // otimizações.
