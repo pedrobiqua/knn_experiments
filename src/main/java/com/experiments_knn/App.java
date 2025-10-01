@@ -15,38 +15,44 @@ import java.util.ArrayList;
 import java.util.Date;
 
 // import com.experiments_knn.lazy.ANN;
-// import com.experiments_knn.lazy.kNNCamberra;
 import com.experiments_knn.lazy.KNN;
+import com.experiments_knn.lazy.KNNKdtree;
 import com.experiments_knn.lazy.kNNCamberra;
 import com.experiments_knn.lazy.kNNStream;
 import com.yahoo.labs.samoa.instances.Instance;
 
 public class App {
     public static void main(String[] args) throws Exception {
-        // Configuração dataset
+        // ========================================================================================
+        // CONFIGURAÇÕES DOS DATASETS UTILIZADOS
         // WriteStreamToARFFFile -s (generators.AgrawalGenerator -b) -f
         // /home/pedro/projects/knn_experiments/src/main/resources/dataset/agrawal_dataset.arff
         // -m 1000000
+        // ========================================================================================
         // WriteStreamToARFFFile -s generators.AssetNegotiationGenerator -f
         // /home/pedro/projects/knn_experiments/src/main/resources/dataset/asset_negotiation_dataset.arff
         // -m 1000000
+        // ========================================================================================
         // WriteStreamToARFFFile -s generators.HyperplaneGenerator -f
         // /home/pedro/projects/knn_experiments/src/main/resources/dataset/hyperplane_dataset.arff
         // -m 1000000
+        // ========================================================================================
         // WriteStreamToARFFFile -s (generators.SEAGenerator -b) -f
         // /home/pedro/projects/knn_experiments/src/main/resources/dataset/sea_dataset.arff
         // -m 1000000
+        // ========================================================================================
         // WriteStreamToARFFFile -s (generators.STAGGERGenerator -b) -f
         // /home/pedro/projects/knn_experiments/src/main/resources/dataset/stagger_dataset.arff
         // -m 1000000
+        // ========================================================================================
 
         // Lista de datasets
         String[] datasets = {
-                "dataset/agrawal_dataset.arff",
-                "dataset/asset_negotiation_dataset.arff",
-                "dataset/hyperplane_dataset.arff",
+                // "dataset/agrawal_dataset.arff",
+                // "dataset/asset_negotiation_dataset.arff",
+                // "dataset/hyperplane_dataset.arff",
                 "dataset/sea_dataset.arff",
-                "dataset/stagger_dataset.arff"
+                // "dataset/stagger_dataset.arff"
         };
 
         // Loop sobre cada dataset
@@ -61,21 +67,23 @@ public class App {
             }
 
             ArrayList<Classifier> classifiers = new ArrayList<>();
-            classifiers.add(new kNNStream()); // Minha implementação de KDTree. // Não está bom, pq?
-            // Vendo os tempos, está muito mais lento que o do MOA. Principalmente no build.
-            // A busca está boa. No build verifiquei que é diferente do MOA. O MOOA faz
-            // algumas
-            // otimizações.
-            // Talvez seja isso.
+            // KNN COM SKDTree
+            // classifiers.add(new kNNStream());
+            // KNN KDTREE | minha implementação usada no contexto de stream, para mostrar a questão do desbalanceamento, aqui eu apenas faço a inserção e remoção
+            // NÃO FAÇO O BUILD DA ÁRVORE
+            classifiers.add(new KNNKdtree());
+            // // KNN EDUARDO
             // classifiers.add(new kNNCamberra()); // Impl do Eduardo.
+            // // KNN MOA - KDTREE
             // kNN knn_moa = new kNN();
             // knn_moa.nearestNeighbourSearchOption.setChosenIndex(1);
-            // classifiers.add(knn_moa); // kNN do MOA com KDTree
-            // classifiers.add(new KNN()); // KNN ingenuo Brute force aqui uso o
-            // LinearSearch
-            // classifiers.add(new RW_kNN()); // RW_KNN -> Tambem está no MOA e é um mais
-            // recente | Usa 2 KDTree PADRÃO:
-            // LinearNN Revouir: 500 Window: 500
+            // classifiers.add(knn_moa);
+            // // KNN - LINEAR SEARCH
+            // classifiers.add(new KNN());
+            // // RWkNN - LinearNN Revouir: 500 Window: 500
+            // classifiers.add(new RW_kNN());
+            
+            // ANN - UTILIZANDO GRAFO DE DISTÂNCIAS
             // classifiers.add(new ANN()); // Implementar o que está no River
 
             ArrayList<Double> times_median = new ArrayList<>();
@@ -102,7 +110,7 @@ public class App {
                     double[] votes = classifier.getVotesForInstance(inst);
                     long predictEndTime = TimingUtils.getNanoCPUTimeOfCurrentThread();
                     double time = TimingUtils.nanoTimeToSeconds(predictEndTime - predictStartTime);
-                    System.out.println(time);
+                    System.out.println("Resultado busca: "+ time);
 
                     times.add(TimingUtils.nanoTimeToSeconds(predictEndTime - predictStartTime));
 

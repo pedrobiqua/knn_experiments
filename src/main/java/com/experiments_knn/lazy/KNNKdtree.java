@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
-import com.experiments_knn.datastructure.SKDTree;
+import com.experiments_knn.datastructure.KDtree;
 import com.experiments_knn.datastructure.StreamNeighborSearch;
 import com.yahoo.labs.samoa.instances.Attribute;
 import com.yahoo.labs.samoa.instances.Instance;
@@ -15,10 +15,9 @@ import moa.classifiers.MultiClassClassifier;
 import moa.classifiers.lazy.neighboursearch.NearestNeighbourSearch;
 import moa.core.Measurement;
 
-public class kNNStream extends AbstractClassifier implements MultiClassClassifier {
-
+public class KNNKdtree extends AbstractClassifier implements MultiClassClassifier {
     private LinkedList<Instance> window;
-    private int window_size = 12;
+    private int window_size = 1000;
     private StreamNeighborSearch search;
     private int numDim = 0;
 
@@ -70,7 +69,7 @@ public class kNNStream extends AbstractClassifier implements MultiClassClassifie
         try {
             NearestNeighbourSearch search_teste;
             Instances window_instances = InstancesUtils.gerarDataset(window, "Validation Instances");
-            search_teste = new SKDTree(window_instances);
+            search_teste = new KDtree(window_instances);
             Instances neighbours = search_teste.kNearestNeighbours(inst, 3);
             for (int i = 0; i < neighbours.numInstances(); i++) {
                 v[(int) neighbours.instance(i).classValue()]++;
@@ -97,7 +96,7 @@ public class kNNStream extends AbstractClassifier implements MultiClassClassifie
                 window = new LinkedList<Instance>();
             }
             if (search == null) {
-                search = new SKDTree(numDim);
+                search = new KDtree(numDim);
             }
 
             // Sliding window
@@ -106,12 +105,13 @@ public class kNNStream extends AbstractClassifier implements MultiClassClassifie
                 search.update(inst);
             } else {
                 // Isso daqui me dá medo!!!
-                // Uma remoção pode ter uma alta complexidade
-                // Aqui não estou fazendo a deleção do eduardo
-                search.removeInstance(window.get(0));
-                window.remove(0);
-                search.update(inst);
+                // Uma remoção pode ter uma alta complexidade O(n)
+                // Aqui não estou fazendo a remoção do eduardo
+                // ISSO AINDA NÃO ESTÁ CERTO, TEVE UMA INSTANCIA QUE NÃO FOI ACHADA
+                Instance oldInstance = window.removeFirst();
+                search.removeInstance(oldInstance);
                 window.add(inst);
+                search.update(inst);
             }
 
         } catch (Exception e) {
@@ -131,5 +131,4 @@ public class kNNStream extends AbstractClassifier implements MultiClassClassifie
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'getModelDescription'");
     }
-
 }

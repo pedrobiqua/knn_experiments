@@ -1,7 +1,6 @@
 package com.experiments_knn.datastructure;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.PriorityQueue;
@@ -11,20 +10,22 @@ import com.yahoo.labs.samoa.instances.Instances;
 import com.yahoo.labs.samoa.instances.InstancesHeader;
 
 import moa.classifiers.lazy.neighboursearch.NearestNeighbourSearch;
-import moa.core.TimingUtils;
+// import moa.core.TimingUtils;
 
-public class KDtree extends NearestNeighbourSearch implements StreamNeighborSearch {
+public class SKDTree extends NearestNeighbourSearch implements StreamNeighborSearch {
 
     public class Node {
         Node left, right, parent;
         Instance instance;
         int splitDim;
+        boolean active;
 
         public Node(Instance inst, int splitDim) {
             this.instance = inst;
             this.splitDim = splitDim;
             this.left = null;
             this.right = null;
+            this.active = true;
         }
 
         public Node(Instance value, Node left, Node right, int splitDim) {
@@ -32,12 +33,46 @@ public class KDtree extends NearestNeighbourSearch implements StreamNeighborSear
             this.left = left;
             this.right = right;
             this.splitDim = splitDim;
+            this.active = true;
+        }
+
+        /// GET E SET
+        public void setActive(boolean active) {
+            this.active = active;
         }
 
         public boolean isLeaf() {
             return left == null && right == null;
         }
 
+        // NÃO SEI SE VOU USAR, POREM APRENDI COMO VERIFICA SE UMA ARVORE ESTÁ
+        // BALANCEADA, O RUIM DISSO É SER O(n), NÃO SEI SE VAI SER VIAVEL PRA PESQUISA
+        public static boolean isBalanced(Node root) {
+            // Verificar a altura da esquerda e da direita
+            // ver se a diferença é muito grande
+            if (root == null) {
+                return true;
+            }
+
+            int leftHeight = height(root.left);
+            int rightHeight = height(root.right);
+
+            if (Math.abs((leftHeight - rightHeight)) > 1) {
+                return false;
+            }
+
+            return isBalanced(root.left) && isBalanced(root.right);
+
+        }
+
+        private static int height(Node root) {
+
+            if (root == null) {
+                return 0;
+            }
+
+            return 1 + (Math.max(height(root.left), height(root.right)));
+        }
     }
 
     public class NodeDistPair {
@@ -56,25 +91,19 @@ public class KDtree extends NearestNeighbourSearch implements StreamNeighborSear
     private PriorityQueue<NodeDistPair> bests;
     private int numNodes;
 
-    public KDtree(int numDim) {
+    public SKDTree(int numDim) {
         this.numDim = numDim;
         this.numNodes = 0;
         this.bests = new PriorityQueue<>(Comparator.comparingDouble((NodeDistPair p) -> p.dist).reversed());
     }
 
-    public KDtree(Instances insts) {
+    public SKDTree(Instances insts) {
         this.numDim = insts.get(0).numValues() - 1;
         // long startTime = TimingUtils.getNanoCPUTimeOfCurrentThread();
         this.root = build(insts, 0);
         // long endTime = TimingUtils.getNanoCPUTimeOfCurrentThread();
         // System.out.println("Build: " + TimingUtils.nanoTimeToSeconds(endTime - startTime));
         this.bests = new PriorityQueue<>(Comparator.comparingDouble((NodeDistPair p) -> p.dist).reversed());
-    }
-
-    @Override
-    public Instance nearestNeighbour(Instance target) throws Exception {
-        Instances dist = kNearestNeighbours(target, 1);
-		return dist.get(0);
     }
 
     @Override
@@ -143,64 +172,6 @@ public class KDtree extends NearestNeighbourSearch implements StreamNeighborSear
         return total;
     }
 
-    private Node findNode(Node p, Instance inst) {
-        if (p == null) {
-            return p;
-        }
-
-        if (Arrays.equals(p.instance.toDoubleArray(), inst.toDoubleArray())) {
-            return p;
-        }
-
-        int dim = p.splitDim;
-        if (inst.toDoubleArray()[dim] < p.instance.toDoubleArray()[dim]) {
-            return findNode(p.left, inst);
-        } else {
-            return findNode(p.right, inst);
-        }
-    }
-
-    @Override
-    public double[] getDistances() throws Exception {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'getDistances'");
-    }
-
-    Node build(Instances insts, int depth) {
-        if (insts.size() == 0) {
-            return null;
-        }
-
-        ArrayList<Double> values_insts = new ArrayList<Double>();
-        for (int i = 0; i < insts.size(); i++) {
-            values_insts.add(insts.get(i).toDoubleArray()[depth]);
-        }
-
-        Collections.sort(values_insts);
-        double median = values_insts.get((int) (values_insts.size() + 1) / 2 - 1);
-        Instance medianInstance = null;
-
-        Instances instsToTheLeft = new Instances(insts, insts.size());
-        Instances instsToTheRight = new Instances(insts, insts.size());
-
-        for (int i = 0; i < insts.size(); i++) {
-            if (insts.get(i).toDoubleArray()[depth] == median && medianInstance == null) {
-                medianInstance = insts.get(i);
-            } else if (insts.get(i).toDoubleArray()[depth] < median)
-                instsToTheLeft.add(insts.get(i));
-            else
-                instsToTheRight.add(insts.get(i));
-        }
-
-        // Monta a árvore em cima dessa recursão
-        return new Node(medianInstance,
-                build(instsToTheLeft, (depth + 1) % this.numDim),
-                build(instsToTheRight, (depth + 1) % this.numDim),
-                depth);
-    }
-
-    // Funções da Interface que vao ser usadas para o KDTree dinamico em Streams de
-    // dados
     @Override
     public void update(Instance ins) throws Exception {
         int depth = 0;
@@ -237,89 +208,97 @@ public class KDtree extends NearestNeighbourSearch implements StreamNeighborSear
         }
     }
 
-    @Override
-    public void removeInstance(Instance inst) throws Exception {
-        
-        Node p = findNode(this.root, inst);
+    private Node findNode(Node p, Instance inst) {
         if (p == null) {
-            // DEBUG
-            System.out.println(inst);
+            return p;
         }
-        if (p != null) {
-            // AINDA ESTÁ DANDO ERRO, POIS NÃO ESTÁ ACHANDO O NODE
-            // Remove o no da árvore
-            delete(p, p.splitDim);
-            numNodes--;
+
+        if (p.instance.equals(inst)) {
+            return p;
+        }
+
+        int dim = p.splitDim;
+        if (inst.toDoubleArray()[dim] < p.instance.toDoubleArray()[dim]) {
+            return findNode(p.left, inst);
+        } else {
+            return findNode(p.right, inst);
         }
     }
 
-    /**
-     * Função de delete pego no livro do Data structures and algorithms in C++
-     * Drozdek
-     * @param p
-     * @param discriminator
-     */
-    private void delete(Node p, int discriminator) {
+    @Override
+    public void removeInstance(Instance inst) throws Exception {
+        Node p = findNode(this.root, inst); // No que eu quero remover
+        deleteLazy(p);
+    }
+
+    private void deleteLazy(Node p) {
         if (p.isLeaf()) {
             p = null;
             return;
         }
 
-        Node q = null;
-        if (p.right != null) {
-            q = smallest(p.right, discriminator, ((discriminator + 1) % numDim));
-        } else {
-            q = smallest(p.left, discriminator, ((discriminator + 1) % numDim));
-            p.right = p.left;
-            p.left = null;
-        }
-
-        p.instance = q.instance;
-        delete(q, discriminator);
+        // Desativa o node
+        p.setActive(false);
     }
 
-    private Node smallest(Node q, int i, int j) {
-        if (q == null) {
-            return null;
-        }
+    @Override
+    public boolean isToRebuild() {
+        // Verifica se precisa reconstruir a arvore, usar o fator de balanceamento
+        // AINDA NÃO SEI COMO CALCULAR ESSE FATOR DE BALANCEAMENTO
+        // ISSO DEVE ESTAR NO Scapegoat tree no artigo onde tem esse fator α
+        // VENDO UM POUCO DO ARTIGO ELE USA O TAMANHO DA ÁRVORE
+        throw new UnsupportedOperationException("Unimplemented method 'isToRebuild'");
+    }
 
-        Node qq = q;
-        if (i == j) {
-            if (q.left != null) {
-                qq = q = q.left;
-            } else {
-                return q;
-            }
-        }
+    @Override
+    public Instance nearestNeighbour(Instance target) throws Exception {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'nearestNeighbour'");
+    }
 
-        if (q.left != null) {
-            Node left = smallest(q.left, i, ((j + 1) % numDim));
-            if (qq.instance.toDoubleArray()[i] >= left.instance.toDoubleArray()[i]) {
-                qq = left;
-            }
-        }
-
-        if (q.right != null) {
-            Node right = smallest(q.right, i, ((j + 1) % numDim));
-            if (qq.instance.toDoubleArray()[i] >= right.instance.toDoubleArray()[i]) {
-                qq = right;
-            }
-        }
-
-        return qq;
+    @Override
+    public double[] getDistances() throws Exception {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'getDistances'");
     }
 
     @Override
     public void setInstances(Instances insts) throws Exception {
         super.setInstances(insts);
-        this.root = build(insts, 0);
+        build(insts, 0);
     }
 
-    @Override
-    public boolean isToRebuild() {
-        // TODO Auto-generated method stub
-        // // critérios para reconstrução da árvore
-        throw new UnsupportedOperationException("Unimplemented method 'isToRebuild'");
-    }
+    private Node build(Instances insts, int depth) {
+        if (insts.size() == 0) {
+            return null;
+        }
 
+        ArrayList<Double> values_insts = new ArrayList<Double>();
+        for (int i = 0; i < insts.size(); i++) {
+            values_insts.add(insts.get(i).toDoubleArray()[depth]);
+        }
+
+        Collections.sort(values_insts);
+        double median = values_insts.get((int) (values_insts.size() + 1) / 2 - 1);
+        Instance medianInstance = null;
+
+        Instances instsToTheLeft = new Instances(insts, insts.size());
+        Instances instsToTheRight = new Instances(insts, insts.size());
+
+        for (int i = 0; i < insts.size(); i++) {
+            if (insts.get(i).toDoubleArray()[depth] == median && medianInstance == null) {
+                medianInstance = insts.get(i);
+            } else if (insts.get(i).toDoubleArray()[depth] < median)
+                instsToTheLeft.add(insts.get(i));
+            else
+                instsToTheRight.add(insts.get(i));
+        }
+
+        // Monta a árvore em cima dessa recursão
+        return new Node(medianInstance,
+                build(instsToTheLeft, (depth + 1) % this.numDim),
+                build(instsToTheRight, (depth + 1) % this.numDim),
+                depth);
+    }
+    
 }
