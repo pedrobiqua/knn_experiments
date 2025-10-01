@@ -5,6 +5,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import com.experiments_knn.datastructure.KDtree;
+import com.experiments_knn.datastructure.StreamNeighborSearch;
 import com.yahoo.labs.samoa.instances.Attribute;
 import com.yahoo.labs.samoa.instances.Instance;
 import com.yahoo.labs.samoa.instances.Instances;
@@ -16,9 +17,10 @@ import moa.core.Measurement;
 
 public class kNNStream extends AbstractClassifier implements MultiClassClassifier {
 
-    LinkedList<Instance> window;
-    int window_size = 1000;
-    int num_class = 0;
+    private LinkedList<Instance> window;
+    private int window_size = 12;
+    private StreamNeighborSearch search;
+    private int numDim = 0;
 
     public class AttributesUtils {
         public static List<Attribute> copyAtributes(Instances originalDataset) {
@@ -66,10 +68,10 @@ public class kNNStream extends AbstractClassifier implements MultiClassClassifie
     public double[] getVotesForInstance(Instance inst) {
         double[] v = new double[inst.numClasses()];
         try {
-            NearestNeighbourSearch search;
+            NearestNeighbourSearch search_teste;
             Instances window_instances = InstancesUtils.gerarDataset(window, "Validation Instances");
-            search = new KDtree(window_instances);
-            Instances neighbours = search.kNearestNeighbours(inst, 3);
+            search_teste = new KDtree(window_instances);
+            Instances neighbours = search_teste.kNearestNeighbours(inst, 3);
             for (int i = 0; i < neighbours.numInstances(); i++) {
                 v[(int) neighbours.instance(i).classValue()]++;
             }
@@ -86,16 +88,34 @@ public class kNNStream extends AbstractClassifier implements MultiClassClassifie
 
     @Override
     public void trainOnInstanceImpl(Instance inst) {
-        // Sliding window
-        if (window == null) {
-            window = new LinkedList<Instance>();
-        }
+        try {
+            if (numDim == 0) {
+                numDim = inst.numValues() - 1;
+            }
+            // Inicializa as estruturas
+            if (window == null) {
+                window = new LinkedList<Instance>();
+            }
+            if (search == null) {
+                search = new KDtree(numDim);
+            }
 
-        if (window.size() < window_size) {
-            window.add(inst);
-        } else {
-            window.remove(0);
-            window.add(inst);
+            // Sliding window
+            if (window.size() < window_size) {
+                window.add(inst);
+                search.update(inst);
+            } else {
+                // Isso daqui me dá medo!!!
+                // Uma remoção pode ter uma alta complexidade
+                // Aqui não estou fazendo a deleção do eduardo
+                search.removeInstance(window.get(0));
+                window.remove(0);
+                search.update(inst);
+                window.add(inst);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
     }

@@ -61,17 +61,19 @@ public class App {
             }
 
             ArrayList<Classifier> classifiers = new ArrayList<>();
-            // classifiers.add(new kNNStream()); // Minha implementação de KDTree. // Não está bom, pq?
+            classifiers.add(new kNNStream()); // Minha implementação de KDTree. // Não está bom, pq?
             // Vendo os tempos, está muito mais lento que o do MOA. Principalmente no build.
-            // A busca está boa. No build verifiquei que é diferente do MOA. O MOOA faz algumas
+            // A busca está boa. No build verifiquei que é diferente do MOA. O MOOA faz
+            // algumas
             // otimizações.
             // Talvez seja isso.
-            classifiers.add(new kNNCamberra()); // Impl do Eduardo.
-            kNN knn_moa = new kNN();
-            knn_moa.nearestNeighbourSearchOption.setChosenIndex(1);
-            classifiers.add(knn_moa); // kNN do MOA com KDTree
-            classifiers.add(new KNN()); // KNN ingenuo Brute force aqui uso o LinearSearch
-            classifiers.add(new RW_kNN()); // RW_KNN -> Tambem está no MOA e é um mais
+            // classifiers.add(new kNNCamberra()); // Impl do Eduardo.
+            // kNN knn_moa = new kNN();
+            // knn_moa.nearestNeighbourSearchOption.setChosenIndex(1);
+            // classifiers.add(knn_moa); // kNN do MOA com KDTree
+            // classifiers.add(new KNN()); // KNN ingenuo Brute force aqui uso o
+            // LinearSearch
+            // classifiers.add(new RW_kNN()); // RW_KNN -> Tambem está no MOA e é um mais
             // recente | Usa 2 KDTree PADRÃO:
             // LinearNN Revouir: 500 Window: 500
             // classifiers.add(new ANN()); // Implementar o que está no River

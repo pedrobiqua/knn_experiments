@@ -15,8 +15,7 @@ import moa.core.TimingUtils;
 public class KDtree extends NearestNeighbourSearch implements StreamNeighborSearch {
 
     public class Node {
-        Node left;
-        Node right;
+        Node left, right, parent;
         Instance instance;
         int splitDim;
 
@@ -37,6 +36,35 @@ public class KDtree extends NearestNeighbourSearch implements StreamNeighborSear
         public boolean isLeaf() {
             return left == null && right == null;
         }
+
+        // NÃO SEI SE VOU USAR, POREM APRENDI COMO VERIFICA SE UMA ARVORE ESTÁ
+        // BALANCEADA, O RUIM DISSO É SER O(n), NÃO SEI SE VAI SER VIAVEL PRA PESQUISA
+        public static boolean isBalanced(Node root) {
+            // Verificar a altura da esquerda e da direita
+            // ver se a diferença é muito grande
+            if (root == null) {
+                return true;
+            }
+
+            int leftHeight = height(root.left);
+            int rightHeight = height(root.right);
+
+            if (Math.abs((leftHeight - rightHeight)) > 1) {
+                return false;
+            }
+
+            return isBalanced(root.left) && isBalanced(root.right);
+
+        }
+
+        private static int height(Node root) {
+
+            if (root == null) {
+                return 0;
+            }
+
+            return 1 + (Math.max(height(root.left), height(root.right)));
+        }
     }
 
     public class NodeDistPair {
@@ -53,6 +81,13 @@ public class KDtree extends NearestNeighbourSearch implements StreamNeighborSear
     private int numDim;
     private int k;
     private PriorityQueue<NodeDistPair> bests;
+    private int numNodes;
+
+    public KDtree(int numDim) {
+        this.numDim = numDim;
+        this.numNodes = 0;
+        this.bests = new PriorityQueue<>(Comparator.comparingDouble((NodeDistPair p) -> p.dist).reversed());
+    }
 
     public KDtree(Instances insts) {
         this.numDim = insts.get(0).numValues() - 1;
@@ -191,50 +226,67 @@ public class KDtree extends NearestNeighbourSearch implements StreamNeighborSear
                 depth);
     }
 
-    // Funções da Interface que vao ser usadas para o KDTree dinamico em Streams de dados
+    // Funções da Interface que vao ser usadas para o KDTree dinamico em Streams de
+    // dados
     @Override
     public void update(Instance ins) throws Exception {
-        int i = 0;
+        int depth = 0;
         Node p = this.root;
         Node prev = null;
 
         while (p != null) {
             prev = p;
-            if (ins.toDoubleArray()[i] < p.instance.toDoubleArray()[i]) {
+            int axis = depth % numDim;
+            if (ins.toDoubleArray()[axis] < p.instance.toDoubleArray()[axis]) {
                 p = p.left;
             } else {
                 p = p.right;
             }
 
-            i = (i+1) % numDim;
+            depth++;
         }
 
-        int axis = (i-1 + numDim) % numDim;
+        this.numNodes++;
 
         // Se for nulo o meu root
         if (root == null) {
             root = new Node(ins, 0);
-        } else if (ins.toDoubleArray()[axis] < prev.instance.toDoubleArray()[axis]) {
-            prev.left = new Node(ins, axis);
+            return;
+        }
+
+        // Profundidade de prev
+        int axis = (depth - 1) % numDim;
+
+        if (ins.toDoubleArray()[axis] < prev.instance.toDoubleArray()[axis]) {
+            prev.left = new Node(ins, (depth % numDim));
         } else {
-            prev.right = new Node(ins, axis);
+            prev.right = new Node(ins, (depth % numDim));
         }
     }
 
     @Override
     public void removeInstance(Instance inst) throws Exception {
         Node p = findNode(this.root, inst); // No que eu quero remover
+        // AVISO !!!
+        // ISSO ESTÁ ERRADO, POIS SE EU APAGAR O ROOT, DEVO MEXER EM TODOS OS SPLIT
+        // DIMENSION
+        // FAZENDO COM QUE FIQUE ERRADO AS OPERAÇÕES SEGUINTES
+        // ALTERAR O FIND NODE PARA BUSCAR A PARTIR DO SPLIIT DIM
+        // E RETORNAR ESSE VALOR E O NODE
         delete(p, p.splitDim);
     }
 
     private void delete(Node p, int discriminator) {
-        Node q = null;
         if (p.isLeaf()) {
-            // Apenas deletar o p
-        } else if (p.right != null) {
+            p = null;
+            return;
+        }
+
+        Node q = null;
+        if (p.right != null) {
             q = smallest(p.right, discriminator, ((discriminator + 1) % numDim));
         } else {
-            q = smallest(p.right, discriminator, ((discriminator + 1) % numDim));
+            q = smallest(p.left, discriminator, ((discriminator + 1) % numDim));
             p.right = p.left;
             p.left = null;
         }
@@ -244,7 +296,30 @@ public class KDtree extends NearestNeighbourSearch implements StreamNeighborSear
     }
 
     private Node smallest(Node q, int i, int j) {
-        return null;
+        Node qq = q;
+        if (i == j) {
+            if (q.left != null) {
+                qq = q = q.left;
+            } else {
+                return q;
+            }
+        }
+
+        if (q.left != null) {
+            Node left = smallest(qq.left, i, ((j + 1) % numDim));
+            if (qq.instance.toDoubleArray()[i] >= left.instance.toDoubleArray()[i]) {
+                qq = left;
+            }
+        }
+
+        if (q.right != null) {
+            Node right = smallest(qq.right, i, ((j + 1) % numDim));
+            if (qq.instance.toDoubleArray()[i] >= right.instance.toDoubleArray()[i]) {
+                qq = right;
+            }
+        }
+
+        return qq;
     }
 
     @Override
@@ -252,7 +327,6 @@ public class KDtree extends NearestNeighbourSearch implements StreamNeighborSear
         // TODO Auto-generated method stub
         super.setInstances(insts);
     }
-
 
     @Override
     public boolean isToRebuild() {
